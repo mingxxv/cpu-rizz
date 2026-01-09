@@ -64,6 +64,9 @@ class SambanovaClient(APIClient):
         self.logger.debug(f"Sending chat request to {self.base_url}/chat/completions")
         self.logger.debug(f"Model: {self.model}, Messages: {len(messages)}, Tools: {len(tools) if tools else 0}")
 
+        # Log the full payload for debugging
+        self.logger.debug(f"Full payload: {json.dumps(payload, indent=2)}")
+
         try:
             response = requests.post(
                 f"{self.base_url}/chat/completions",
@@ -71,6 +74,12 @@ class SambanovaClient(APIClient):
                 json=payload,
                 timeout=60
             )
+
+            # Log response status and body for debugging
+            self.logger.debug(f"Response status: {response.status_code}")
+            if response.status_code != 200:
+                self.logger.error(f"Error response body: {response.text}")
+
             response.raise_for_status()
         except requests.exceptions.Timeout:
             self.logger.error("Request timeout after 60 seconds")

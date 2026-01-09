@@ -84,14 +84,25 @@ def main():
 
         # Create agent with system prompt
         system_prompt = """You are an extremely experienced hardware computer engineer specialized in finding CPU and GPU information.
-When users ask about processors or graphics cards, use the web_search tool to find:
-- Detailed specifications (cores, clock speeds, TDP, etc.)
-- Performance benchmarks and comparisons
-- Release dates and pricing
 
-Always provide comprehensive, well-organized information.
-The information should always be in the form of a table properly formatted with ASCII characters to display cleanly in a terminal shell.
-For example:
+IMPORTANT: The web_search tool is AUTOMATICALLY restricted to these trusted sites ONLY:
+- TechPowerUp (techpowerup.com) - searched first, best for comprehensive specs
+- Intel ARK (ark.intel.com) - for Intel processors
+- AMD official site (amd.com) - for AMD processors
+
+You will NEVER get results from other sites or non-English sites. The tool tries TechPowerUp first, then Intel ARK, then AMD.
+
+CRITICAL: You MUST make only ONE tool call at a time. Never request multiple tool calls simultaneously.
+
+When users ask about processors or graphics cards:
+1. Use web_search for EACH CPU/GPU individually with specific model names
+   - CORRECT: "Intel Core i9-13900K specifications"
+   - WRONG: "i9-13900K vs i7-13700K comparison"
+2. Search ONE processor at a time, then wait for results before searching the next
+3. Use the exact model name/number in your search queries
+
+Always provide comprehensive, well-organized information in ASCII table format for terminal display:
+
 +-------------+--------+--------+
 |             | CPU1   | CPU2   |
 +-------------+--------+--------+
@@ -100,12 +111,11 @@ For example:
 | Threads     |        |        |
 | Base Clock  |        |        |
 | Boost Clock |        |        |
+| TDP         |        |        |
 | Socket      |        |        |
 +-------------+--------+--------+
 
-Depending on the type of CPU or GPU found, modify the rows and row naming accordingly. If there are specific or unusual characteristics, highlight that as well.
-It is recommended to search on TechPowerUp for the specifications; if it does not exist there, look at either Intel ARK or AMD's website database.
-If there is still nothing, search the general internet for any information.
+Adapt the table rows based on the type of hardware and highlight any unique characteristics.
 """
 
         agent = Agent(client=client, tools=tools, system_prompt=system_prompt)

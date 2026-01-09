@@ -70,6 +70,12 @@ class Agent:
                 self.logger.debug(f"Final response length: {len(final_response)} chars")
                 return final_response
 
+            # IMPORTANT: SambaNova API doesn't support multiple tool calls in one message
+            # Only process the first tool call to avoid 500 errors
+            if len(tool_calls) > 1:
+                self.logger.warning(f"Model requested {len(tool_calls)} tool calls, but SambaNova only supports 1 at a time. Processing only the first one.")
+                tool_calls = [tool_calls[0]]
+
             # Add assistant message with tool calls to conversation
             messages.append({
                 "role": "assistant",
