@@ -4,6 +4,7 @@ Simple agent with tool calling capabilities
 
 import json
 import logging
+import time
 from typing import List, Dict, Any
 
 from api import SambanovaClient
@@ -13,7 +14,7 @@ from tools import Tool
 class Agent:
     """Agent that can use tools to answer questions"""
 
-    def __init__(self, client: SambanovaClient, tools: List[Tool], system_prompt: str = None):
+    def __init__(self, client: SambanovaClient, tools: List[Tool], system_prompt: str = None, inter_call_delay: float = 0.5):
         """
         Initialize agent
 
@@ -21,10 +22,12 @@ class Agent:
             client: API client for LLM communication
             tools: List of available tools
             system_prompt: Optional system prompt
+            inter_call_delay: Delay in seconds between successive API calls (default: 0.5)
         """
         self.client = client
         self.tools = {tool.name: tool for tool in tools}
         self.system_prompt = system_prompt or "You are a helpful AI assistant that can search the web for information."
+        self.inter_call_delay = inter_call_delay
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self, user_message: str, max_iterations: int = 5) -> str:
@@ -50,6 +53,11 @@ class Agent:
 
         for iteration in range(max_iterations):
             self.logger.debug(f"Iteration {iteration + 1}/{max_iterations}")
+
+            # Add delay between successive API calls (but not before the first call)
+            if iteration > 0 and self.inter_call_delay > 0:
+                self.logger.debug(f"Waiting {self.inter_call_delay}s between API calls...")
+                time.sleep(self.inter_call_delay)
 
             # Get response from LLM
             try:

@@ -1,22 +1,36 @@
 """
-Web search tool using DuckDuckGo with site restrictions for hardware specs
+Web search tool using Google Custom Search API
 """
 
 from typing import Dict, Any, List
-from duckduckgo_search import DDGS
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from .base import Tool
 
 
 class WebSearchTool(Tool):
-    """Web search tool for finding CPU/GPU information from trusted sources"""
+    """Web search tool for finding CPU/GPU information"""
 
-    # Trusted sites for hardware specifications
-    TRUSTED_SITES = [
-        "techpowerup.com",
-        "ark.intel.com",
-        "amd.com",
-    ]
+    def __init__(self, api_key: str = None, cse_id: str = None):
+        """
+        Initialize the Google Custom Search tool
+
+        Args:
+            api_key: Google API key
+            cse_id: Custom Search Engine ID
+        """
+        self.api_key = api_key
+        self.cse_id = cse_id
+        self._service = None
+
+    def _get_service(self):
+        """Lazy initialization of Google Custom Search service"""
+        if self._service is None:
+            if not self.api_key or not self.cse_id:
+                raise ValueError("Google API key and CSE ID must be provided")
+            self._service = build("customsearch", "v1", developerKey=self.api_key)
+        return self._service
 
     @property
     def name(self) -> str:
@@ -25,8 +39,7 @@ class WebSearchTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "Search the web for CPU/GPU information from trusted sources only. "
-            "Automatically restricts searches to TechPowerUp, Intel ARK, and AMD official sites. "
+            "Search the web for CPU/GPU information. "
             "Use this to find specifications, benchmarks, and performance data."
         )
 
@@ -43,95 +56,57 @@ class WebSearchTool(Tool):
                     "type": "integer",
                     "description": "Maximum number of results to return (default: 5)",
                     "default": 5
-                },
-                "specific_site": {
-                    "type": "string",
-                    "description": "Optional: search only a specific site (techpowerup, intel, or amd)",
-                    "enum": ["techpowerup", "intel", "amd"]
                 }
             },
             "required": ["query"]
         }
 
-    def _build_site_restricted_query(self, query: str, specific_site: str = None) -> List[str]:
+    def execute(self, query: str, max_results: int = 5) -> str:
         """
-        Build queries with site restrictions
-
-        Args:
-            query: Original search query
-            specific_site: Optional specific site to search
-
-        Returns:
-            List of queries to try
-        """
-        queries = []
-
-        if specific_site:
-            # Search specific site only
-            site_map = {
-                "techpowerup": "site:techpowerup.com",
-                "intel": "site:ark.intel.com",
-                "amd": "site:amd.com"
-            }
-            if specific_site in site_map:
-                queries.append(f"{query} {site_map[specific_site]}")
-        else:
-            # Try TechPowerUp first (best for specs), then Intel ARK, then AMD
-            queries.append(f"{query} site:techpowerup.com")
-            queries.append(f"{query} site:ark.intel.com")
-            queries.append(f"{query} site:amd.com")
-
-        return queries
-
-    def execute(self, query: str, max_results: int = 5, specific_site: str = None) -> str:
-        """
-        Execute web search restricted to trusted hardware sites
+        Execute web search
 
         Args:
             query: Search query string
             max_results: Maximum number of results
-            specific_site: Optional specific site to search (techpowerup, intel, amd)
 
         Returns:
             Formatted search results
         """
         try:
-            all_results = []
-            queries_to_try = self._build_site_restricted_query(query, specific_site)
+            if not self.api_key or not self.cse_id:
+                return "Error: Google API credentials not configured. Please set GOOGLE_API_KEY and GOOGLE_CSE_ID."
 
-            # Try each query until we get results
-            for search_query in queries_to_try:
-                with DDGS() as ddgs:
-                    results = list(ddgs.text(search_query, max_results=max_results))
+            service = self._get_service()
 
-                if results:
-                    all_results.extend(results)
-                    # If we found results, stop trying other sites
-                    break
+            # Google Custom Search API returns max 10 results per request
+            num_results = min(max_results, 10)
 
-            # Remove duplicates by URL
-            seen_urls = set()
-            unique_results = []
-            for result in all_results:
-                if result['href'] not in seen_urls:
-                    seen_urls.add(result['href'])
-                    unique_results.append(result)
+            result = service.cse().list(
+                q=query,
+                cx=self.cse_id,
+                num=num_results
+            ).execute()
 
-            if not unique_results:
-                return (
-                    f"No results found on trusted sites (TechPowerUp, Intel ARK, AMD) for query: {query}\n"
-                    f"Try rephrasing your query or check the exact product name."
-                )
+            items = result.get('items', [])
+
+            if not items:
+                return f"No results found for query: {query}"
 
             formatted_results = []
-            for i, result in enumerate(unique_results[:max_results], 1):
+            for i, result in enumerate(items, 1):
+                title = result.get('title', 'No title')
+                link = result.get('link', 'No URL')
+                snippet = result.get('snippet', 'No description available')
+
                 formatted_results.append(
-                    f"{i}. {result['title']}\n"
-                    f"   URL: {result['href']}\n"
-                    f"   {result['body']}\n"
+                    f"{i}. {title}\n"
+                    f"   URL: {link}\n"
+                    f"   {snippet}\n"
                 )
 
             return "\n".join(formatted_results)
 
+        except HttpError as e:
+            return f"Error performing search: {str(e)}"
         except Exception as e:
             return f"Error performing search: {str(e)}"

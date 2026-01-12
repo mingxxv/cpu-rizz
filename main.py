@@ -31,9 +31,9 @@ def setup_logging():
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter(log_format))
 
-    # Setup console handler (only warnings and errors)
+    # Setup console handler (show INFO level and above for debugging)
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.WARNING)
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
 
     # Configure root logger
@@ -75,33 +75,45 @@ def main():
         settings = Settings.from_env()
         logger.info(f"Using model: {settings.model}")
         logger.info(f"Temperature: {settings.temperature}, Max tokens: {settings.max_tokens}")
+        logger.info(f"Rate limit config: max_retries={settings.max_retries}, initial_delay={settings.initial_retry_delay}s, inter_call_delay={settings.inter_call_delay}s")
 
-        client = SambanovaClient(api_key=settings.api_key, model=settings.model)
+        client = SambanovaClient(
+            api_key=settings.api_key,
+            model=settings.model,
+            max_retries=settings.max_retries,
+            initial_retry_delay=settings.initial_retry_delay
+        )
 
         # Initialize tools
-        tools = [WebSearchTool()]
+        tools = [WebSearchTool(api_key=settings.google_api_key, cse_id=settings.google_cse_id)]
         logger.info(f"Initialized {len(tools)} tool(s): {[tool.name for tool in tools]}")
 
         # Create agent with system prompt
-        system_prompt = """You are an extremely experienced hardware computer engineer specialized in finding CPU and GPU information.
+        system_prompt = """You are a senior computer hardware engineer specializing in CPUs and GPUs.
 
-IMPORTANT: The web_search tool is AUTOMATICALLY restricted to these trusted sites ONLY:
-- TechPowerUp (techpowerup.com) - searched first, best for comprehensive specs
-- Intel ARK (ark.intel.com) - for Intel processors
-- AMD official site (amd.com) - for AMD processors
+TOOLS
+- You have access to ONE tool: web_search.
+- web_search looks at these sites FIRST:
+  • techpowerup.com (primary)
+  • ark.intel.com
+  • amd.com
+  • nvidia.com
 
-You will NEVER get results from other sites or non-English sites. The tool tries TechPowerUp first, then Intel ARK, then AMD.
+CRITICAL TOOL RULE (HIGHEST PRIORITY)
+- You MUST make AT MOST ONE tool call per turn.
+- If a tool call is needed, make exactly ONE call and STOP.
+- Never chain, batch, or plan multiple tool calls in a single response.
+- If more searches are required, wait for the next turn.
 
-CRITICAL: You MUST make only ONE tool call at a time. Never request multiple tool calls simultaneously.
+SEARCH RULES
+- Search ONLY one CPU or GPU per tool call.
+- Always use the exact full model name.
+  ✓ “Intel Core i9-13900K specifications”
+  ✗ “i9-13900K vs i7-13700K”
 
-When users ask about processors or graphics cards:
-1. Use web_search for EACH CPU/GPU individually with specific model names
-   - CORRECT: "Intel Core i9-13900K specifications"
-   - WRONG: "i9-13900K vs i7-13700K comparison"
-2. Search ONE processor at a time, then wait for results before searching the next
-3. Use the exact model name/number in your search queries
-
-Always provide comprehensive, well-organized information in ASCII table format for terminal display:
+OUTPUT FORMAT
+- Present results as a clean ASCII table suitable for terminal display.
+- Example:
 
 +-------------+--------+--------+
 |             | CPU1   | CPU2   |
@@ -115,10 +127,16 @@ Always provide comprehensive, well-organized information in ASCII table format f
 | Socket      |        |        |
 +-------------+--------+--------+
 
-Adapt the table rows based on the type of hardware and highlight any unique characteristics.
+- Adapt rows to the hardware type.
+- Highlight notable or unique characteristics when relevant.
 """
 
-        agent = Agent(client=client, tools=tools, system_prompt=system_prompt)
+        agent = Agent(
+            client=client,
+            tools=tools,
+            system_prompt=system_prompt,
+            inter_call_delay=settings.inter_call_delay
+        )
         logger.info("Agent initialized successfully")
 
         # Print welcome message
