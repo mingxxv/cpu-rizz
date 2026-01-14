@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from api import SambanovaClient
 from config import Settings
-from tools import WebSearchTool
+from tools import WebSearchTool, SpecParserTool
 from agent import Agent
 
 
@@ -85,11 +85,14 @@ def main():
         )
 
         # Initialize tools
-        tools = [WebSearchTool(api_key=settings.google_api_key, cse_id=settings.google_cse_id)]
+        tools = [
+            WebSearchTool(api_key=settings.google_api_key, cse_id=settings.google_cse_id),
+            SpecParserTool()
+        ]
         logger.info(f"Initialized {len(tools)} tool(s): {[tool.name for tool in tools]}")
 
         # Create agent with system prompt
-        system_prompt = """CPU/GPU hardware engineer. Make ONE web_search call per turn for specifications. Search one processor at a time with full model name. Present as ASCII table. Make sure the word 'specifications' is in the search. Once you find the specs, STOP searching."""
+        system_prompt = """CPU/GPU hardware engineer. For each query: 1) web_search for specs 2) spec_parser to extract key specs. Search one processor at a time with full model name. Present as ASCII table. Include 'specifications' in search. Stop after parsing."""
 
         agent = Agent(
             client=client,
