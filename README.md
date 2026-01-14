@@ -1,6 +1,9 @@
 # AI Agent
 
-A simple, modular AI agent built with SOLID principles.
+>Maybe if I built an agent based on a workflow I completely understand, I'll finally get how to build an agent.
+>(Me, 2026)
+
+A simple AI agent with web search tool calling capabilities.
 
 ## Project Structure
 
