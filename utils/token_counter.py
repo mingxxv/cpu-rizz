@@ -10,7 +10,15 @@ from typing import Dict, List, Any, Optional
 class TokenCounter:
     """Counts tokens using the model's tokenizer"""
 
-    def __init__(self, model_name: str = "meta-llama/Meta-Llama-3-8B-Instruct"):
+    def __init__(self, model_name: str = "gpt2"):
+        """
+        Initialize token counter
+
+        Args:
+            model_name: HuggingFace model name to use for tokenization.
+                       Defaults to 'gpt2' which is publicly available and doesn't require authentication.
+                       This provides approximate token counts that are useful for monitoring.
+        """
         self.model_name = model_name
         self.logger = logging.getLogger(self.__class__.__name__)
         self._tokenizer = None

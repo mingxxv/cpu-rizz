@@ -16,7 +16,7 @@ from utils import TokenCounter
 class SambanovaClient(APIClient):
     """Sambanova API client following Single Responsibility Principle"""
 
-    def __init__(self, api_key: str = None, model: str = "Meta-Llama-3.1-8B-Instruct", max_retries: int = 5, initial_retry_delay: float = 1.0):
+    def __init__(self, api_key: str = None, model: str = "DeepSeek-V3.1", max_retries: int = 5, initial_retry_delay: float = 1.0):
         """
         Initialize Sambanova client
 
@@ -80,11 +80,11 @@ class SambanovaClient(APIClient):
         if token_count > 0:
             self.logger.info(f"Estimated input tokens: {token_count}")
 
-        # Log the full request payload for rate limit debugging
+        # Log the full request payload for rate limit debugging (compact to reduce log size)
         self.logger.debug("=" * 80)
         self.logger.debug("LLM REQUEST PAYLOAD:")
         self.logger.debug("=" * 80)
-        self.logger.debug(json.dumps(payload, indent=2))
+        self.logger.debug(json.dumps(payload))
         self.logger.debug("=" * 80)
 
         # Retry loop with exponential backoff

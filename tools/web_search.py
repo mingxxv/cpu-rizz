@@ -38,25 +38,15 @@ class WebSearchTool(Tool):
 
     @property
     def description(self) -> str:
-        return (
-            "Search the web for CPU/GPU information. "
-            "Use this to find specifications, benchmarks, and performance data."
-        )
+        return "Search web for CPU/GPU specs"
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return {
             "type": "object",
             "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The search query (e.g., 'Intel Core i9-13900K specifications')"
-                },
-                "max_results": {
-                    "type": "integer",
-                    "description": "Maximum number of results to return (default: 5)",
-                    "default": 5
-                }
+                "query": {"type": "string", "description": "Search query"},
+                "max_results": {"type": "integer", "default": 5}
             },
             "required": ["query"]
         }
@@ -78,6 +68,10 @@ class WebSearchTool(Tool):
 
             service = self._get_service()
 
+            # Handle None value for max_results (can happen when LLM passes null)
+            if max_results is None:
+                max_results = 5
+
             # Google Custom Search API returns max 10 results per request
             num_results = min(max_results, 10)
 
@@ -94,15 +88,10 @@ class WebSearchTool(Tool):
 
             formatted_results = []
             for i, result in enumerate(items, 1):
-                title = result.get('title', 'No title')
-                link = result.get('link', 'No URL')
-                snippet = result.get('snippet', 'No description available')
-
-                formatted_results.append(
-                    f"{i}. {title}\n"
-                    f"   URL: {link}\n"
-                    f"   {snippet}\n"
-                )
+                snippet = result.get('snippet', '')
+                # Only extract specification data from snippet
+                if snippet:
+                    formatted_results.append(f"{i}. {snippet}")
 
             return "\n".join(formatted_results)
 

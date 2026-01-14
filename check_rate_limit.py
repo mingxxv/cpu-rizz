@@ -23,7 +23,7 @@ headers = {
 }
 
 payload = {
-    "model": "Meta-Llama-3.1-8B-Instruct",
+    "model": "DeepSeek-V3.1",
     "messages": [{"role": "user", "content": "Hi"}],
     "max_tokens": 10
 }

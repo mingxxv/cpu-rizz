@@ -12,7 +12,7 @@ class Settings:
     """Application settings"""
 
     api_key: str
-    model: str = "Meta-Llama-3.1-8B-Instruct"
+    model: str = "DeepSeek-V3.1"
     temperature: float = 0.7
     max_tokens: int = 1000
     google_api_key: Optional[str] = None

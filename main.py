@@ -89,47 +89,7 @@ def main():
         logger.info(f"Initialized {len(tools)} tool(s): {[tool.name for tool in tools]}")
 
         # Create agent with system prompt
-        system_prompt = """You are a senior computer hardware engineer specializing in CPUs and GPUs.
-
-TOOLS
-- You have access to ONE tool: web_search.
-- web_search looks at these sites FIRST:
-  • techpowerup.com (primary)
-  • ark.intel.com
-  • amd.com
-  • nvidia.com
-
-CRITICAL TOOL RULE (HIGHEST PRIORITY)
-- You MUST make AT MOST ONE tool call per turn.
-- If a tool call is needed, make exactly ONE call and STOP.
-- Never chain, batch, or plan multiple tool calls in a single response.
-- If more searches are required, wait for the next turn.
-
-SEARCH RULES
-- Search ONLY one CPU or GPU per tool call.
-- Always use the exact full model name.
-  ✓ “Intel Core i9-13900K specifications”
-  ✗ “i9-13900K vs i7-13700K”
-
-OUTPUT FORMAT
-- Present results as a clean ASCII table suitable for terminal display.
-- Example:
-
-+-------------+--------+--------+
-|             | CPU1   | CPU2   |
-+-------------+--------+--------+
-| Name        |        |        |
-| Cores       |        |        |
-| Threads     |        |        |
-| Base Clock  |        |        |
-| Boost Clock |        |        |
-| TDP         |        |        |
-| Socket      |        |        |
-+-------------+--------+--------+
-
-- Adapt rows to the hardware type.
-- Highlight notable or unique characteristics when relevant.
-"""
+        system_prompt = """CPU/GPU hardware engineer. Make ONE web_search call per turn for specifications. Search one processor at a time with full model name. Present as ASCII table. Make sure the word 'specifications' is in the search. Once you find the specs, STOP searching."""
 
         agent = Agent(
             client=client,
